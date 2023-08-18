@@ -1,31 +1,46 @@
-# Stage 1/7: What is a Git object
+# Stage 2/7: Git object types
 ## Description
-Let's start with watching a comprehensive <a href="https://www.youtube.com/watch?v=P6jD966jzlk">introductory video from Gitlab</a>. You can also check out a written <a href="https://git-scm.com/book/en/v2/Git-Internals-Git-Objects">introduction to Git</a>.
+Git has three types of objects:
 
-Here’s a recap of some key points you learned about Git from the introduction:
+- <b>Blob</b> stores file contents
+- <b>Tree</b> stores directory structure with filenames and subdirectories
+- <b>Commit</b> represents the snapshots of your project
 
-- Git objects are stored in the `.git/objects` subdirectory of your project
-- Git objects are compressed with zlib
-- The file path contains a SHA-1 hash of the object contents
-
-Let’s start with reading the simplest type of object, the blob object.
-
-Note: you can use the `git cat-file -p <get object hash>` command to view the Git object contents.
+Any Git object file starts with a header. The header is a null-terminated string of text containing the object type and size. <i>(You should already be familiar with null-terminated strings from the previous stage.)</i>
 
 ## Objectives
-- Write a program that asks the user for the path to the Git blob object, read the object file, decompress (inflate) it with zlib.
-- Print out the content of the file.
-- Pay attention that the file is using null terminated strings.
-- Java module `java.util.zip` contains the zlib inflator and deflator.
-- For a convenient method of inflating the compressed data, check out the <a href="https://www.geeksforgeeks.org/java-util-zip-inflaterinputstream-class-java">Geeks for geeks article</a> on the subject.
+- Write a program that asks the user for the `.git` directory location and the Git object hash.
+- Find the file, the path to the file is as follows: first the git directory path, followed by objects folder, followed by a folder with the first two digits of the object hash and inside is located the object file that has the remaining digits of the hash as name. In summary: `[git directory]/objects/[first two digits of hash]/[remaining digits of hash]`
+- Output only the object header data, which contains the object type and size, using the format "`type:[type] length:[length]`".
 
-Note: null-terminated strings are a common data structure. Strings in C and C++ are stored in memory as sequences of characters followed by the character `\x00` also known as NULL. No additional length information is stored. For example, "`Hello World!\x00`".
+## Examples
+Note that we will not use the .git folder in this project as it is impossible to store under Git. The `.git` folder contents needed for stage testing will be stored in the “test” folder.
 
-## Example
 The greater-than symbol followed by a space `>` represents the user input. Note that it's not part of the input.
+
+<b>Example 1</b>
 ```
-Enter git object location:
-> task/test/gitone/objects/61/8383db6d7ee3bd2e97b871205f113b6a3ba854
-blob 14
-Hello world!
+Enter .git directory location:
+> /home/my_project/.git
+Enter git object hash:
+> 0eee6a98471a350b2c2316313114185ecaf82f0e
+type:commit length:216
+```
+
+<b>Example 2</b>
+```
+Enter .git directory location:
+> task/test/gitone
+Enter git object hash:
+> 490f96725348e92770d3c6bab9ec532564b7ebe0
+type:blob length:85
+```
+
+<b>Example 3</b>
+```
+Enter .git directory location:
+> task/test/gitone
+Enter git object hash:
+> a7b882bbf2db5d90287e9affc7e6f3b3c740b327
+type:tree length:35
 ```
