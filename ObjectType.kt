@@ -5,6 +5,7 @@ import java.lang.RuntimeException
 enum class ObjectType(val string: String) {
     BLOB("blob"),
     COMMIT("commit"),
+    TREE("tree"),
     ;
 
     companion object {

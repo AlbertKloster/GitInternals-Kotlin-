@@ -1,93 +1,23 @@
-# Stage 3/7: Commits
+# Stage 4/7: Trees
 ## Description
-A commit is a snapshot of your project. A commit object contains the following information:
-- Filesystem tree
-- A list of parent commits
-- The author's name and email
-- Date and time when the commit was originally created
-- Committer's name and email (committer is the person who applied the commit)
-- Date and time when the commit was applied
-- Commit message
+Tree objects store the file name, and the SHA-1 hash of the file content which is the same as the blob file name for this file, or another tree object if it is a subdirectory. Tree objects can hold a group of files and directories.
 
-The commit object name, also known as "commit ID", is a SHA-1 hash of the commit object’s contents.
-
-A commit may have no parent if it is the initial commit.
-
-A commit may have two parents if it is a merge commit. In this case, the <b>first parent</b> is the preceding commit in the <b>current branch</b>, and the <b>second parent</b> is the preceding commit from the <b>branch being merged</b>.
-
-The author and committer differ if the commit was cherry-picked or changed during a merge, rebase, or another operation.
-
-The commit file structure is straightforward: the git object header is followed by plain text lines in the same order as in the description above.
+Tree object file structure is a bit tricky to read. Just like any other Git object, a file tree object starts with a null-terminated header. The header is followed by one or more items consisting of: a permission metadata number, a whitespace, a filename, a null char and a 20-byte long binary SHA-1. Pay attention that there is no whitespace nor null char between the SHA-1 and the next item if there is one.
 
 ## Objectives
-- Your program now should detect the object type for the specified file, and print out the object’s type and contents.
-- The content should be reformatted as in the example. In this stage, you should support blobs and commits.
-- If the commit has no parent skip the parents line on output
-- If the commit has two parents join their hashes separated by "` | `", keeping the same order that was in the file
-- You will also have to translate a Unix epoch timestamp to human readable date and time. You can construct a <a href="https://developer.android.com/reference/java/time/Instant">java.time.Instant</a> object of the timestamp and use <a href="https://developer.android.com/reference/java/time/format/DateTimeFormatter">java.time.format.DateTimeFormatter</a> to print it out.
-- It is guaranteed that a name (author or committer) does not contain white spaces in middle of the name
-- Commit messages may have multiple lines
+- Add support for reading tree objects to your current program
+- Convert the 20 byte long SHA-1 binary to hexadecimal lowercase string, which should be 40 digits long after convertion
+- While making the conversion zeropad the hex representation of a byte if it results in only one digit (ex: a byte with value 10 converts to "0a", 0 converts to "00" and 200 converts to "c8")
 
-Please keep in mind that commit messages usually have an empty line at the end.
-
-## Examples
+## Example
 The greater-than symbol followed by a space `>` represents the user input. Note that it's not part of the input.
-
-<b>Example 1</b>
 ```
 Enter .git directory location:
 > task/test/gitone
 Enter git object hash:
-
->490f96725348e92770d3c6bab9ec532564b7ebe0
-*BLOB*
-fun main() {
-    while(true) {
-        println("Hello Hyperskill student!")
-    }
-}
-```
-
-<b>Example 2</b>
-```
-Enter .git directory location:
-> task/test/gitone
-Enter git object hash:
-> 0eee6a98471a350b2c2316313114185ecaf82f0e
-*COMMIT*
-tree: 79401ddb0e2c0fe0472c813754dd4a8873b66a84
-parents: 12a4717e84b5e414f93cc91ca50a6d5a6c3563a0
-author: Smith mr.smith@matrix original timestamp: 2020-03-29 17:18:20 +03:00
-committer: Cypher cypher@matrix commit timestamp: 2020-03-29 17:25:52 +03:00
-commit message:
-get docs from feature1
-```
-
-<b>Example 3</b>
-```
-Enter .git directory location:
-> task/test/gittwo
-Enter git object hash:
-> 31cddcbd00e715688cd127ad20c2846f9ed98223
-*COMMIT*
-tree: aaa96ced2d9a1c8e72c56b253a0e2fe78393feb7
-author: Kalinka Kali.k4@email.com original timestamp: 2021-12-11 22:31:36 -03:00
-committer: Kalinka Kali.k4@email.com commit timestamp: 2021-12-11 22:31:36 -03:00
-commit message:
-simple hello
-```
-
-<b>Example 4</b>
-```
-Enter .git directory location:
-> task/test/gittwo
-Enter git object hash:
-> dcec4e51e2ce4a46a6206d0d4ab33fa99d8b1ab5
-*COMMIT*
-tree: d128f76a96c56ac4373717d3fbba4fa5875ca68f
-parents: 5ad3239e54ba7c533d9f215a13ac82d14197cd8f | d2c5bedbb2c46945fd84f2ad209a7d4ee047f7f9
-author: Kalinka Kali.k4@email.com original timestamp: 2021-12-11 22:49:02 -03:00
-committer: Kalinka Kali.k4@email.com commit timestamp: 2021-12-11 22:49:02 -03:00
-commit message:
-awsome hello
+> 109e8050b41bd10b81be0a51a5e67327f5609551
+*TREE*
+100644 2b26c15c04375d90203783fb4c2a45ff04b571a6 main.kt
+100644 f674b5d3a4c6cef5815b4e72ef2ea1bbe46b786b readme.txt
+40000 74198c849dbbcd51d060c59253a4757eedb9bd12 some-folder
 ```
