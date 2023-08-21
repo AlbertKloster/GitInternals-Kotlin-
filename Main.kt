@@ -1,23 +1,46 @@
 package gitinternals
 
+import java.io.File
 import java.io.FileInputStream
 import java.lang.StringBuilder
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.zip.InflaterInputStream
+import kotlin.io.path.Path
+import kotlin.io.path.listDirectoryEntries
 
 fun main() {
+    println("Enter .git directory location:")
+    val directoryLocation = readln()
 
+    println("Enter command:")
+    when (Command.getCommand(readln())) {
+        Command.CAT_FILE -> catFile(directoryLocation)
+        Command.LIST_BRANCHES -> listBranches(directoryLocation)
+    }
+
+}
+
+fun listBranches(directoryLocation: String) {
+
+    val head = File("$directoryLocation/HEAD").readText()
+    val currentBranch = head.split("/").last().trim()
+
+    Path("$directoryLocation/refs/heads").listDirectoryEntries().sorted().forEach {
+        print(if (it.fileName.toString() == currentBranch) "* " else "  ")
+        println(it.fileName)
+    }
+}
+
+
+private fun catFile(directoryLocation: String) {
     var objectType: ObjectType? = ObjectType.BLOB
 
     try {
-        println("Enter .git directory location:")
-        val gitBase = readln()
-
         println("Enter git object hash:")
         val gitHash = readln()
-        val fileInputStream = FileInputStream("$gitBase\\objects\\${gitHash.substring(0, 2)}\\${gitHash.substring(2)}")
+        val fileInputStream = FileInputStream("$directoryLocation/objects/${gitHash.substring(0, 2)}/${gitHash.substring(2)}")
         val inflater = InflaterInputStream(fileInputStream)
         val currentBytes = mutableListOf<Int>()
         var byteRead: Int
@@ -50,7 +73,7 @@ fun main() {
     }
 }
 
-fun printTree(currentBytes: List<Int>) {
+private fun printTree(currentBytes: List<Int>) {
     println("*TREE*")
 
     val numberAndFilenameList = mutableListOf<String>()
@@ -89,12 +112,12 @@ fun printTree(currentBytes: List<Int>) {
 
 private fun MutableList<Int>.flatToString() = this.joinToString("") { it.toChar().toString() }
 
-fun printBlob(currentBytes: MutableList<Int>) {
+private fun printBlob(currentBytes: MutableList<Int>) {
     println("*BLOB*")
     println(currentBytes.flatToString())
 }
 
-fun printCommit(currentBytes: MutableList<Int>) {
+private fun printCommit(currentBytes: MutableList<Int>) {
     println("*COMMIT*")
     printCommitTree(currentBytes)
     printParents(currentBytes)

@@ -1,23 +1,46 @@
-# Stage 4/7: Trees
+# Stage 5/7: Branches
 ## Description
-Tree objects store the file name, and the SHA-1 hash of the file content which is the same as the blob file name for this file, or another tree object if it is a subdirectory. Tree objects can hold a group of files and directories.
+Lightweight branches are known as one of the best features of Git. In Git, a branch is just one commit object like the one you parsed in stage 3! Branches do not contain any duplicates of other branches.
 
-Tree object file structure is a bit tricky to read. Just like any other Git object, a file tree object starts with a null-terminated header. The header is followed by one or more items consisting of: a permission metadata number, a whitespace, a filename, a null char and a 20-byte long binary SHA-1. Pay attention that there is no whitespace nor null char between the SHA-1 and the next item if there is one.
+The list of your local branches is typically stored in the `.git/refs/heads` directory. The file names in this folder are equal to branch names. The content in these files is equal to the commit ID of the head of the corresponding branch.
+
+The current HEAD is stored in the `.git/HEAD` file.
+
+ORIG_HEAD contains the last HEAD you worked on if you are currently in a “detached head” state.
+
+The list of available branches can be accessed with the `git branch -l` command.
 
 ## Objectives
-- Add support for reading tree objects to your current program
-- Convert the 20 byte long SHA-1 binary to hexadecimal lowercase string, which should be 40 digits long after convertion
-- While making the conversion zeropad the hex representation of a byte if it results in only one digit (ex: a byte with value 10 converts to "0a", 0 converts to "00" and 200 converts to "c8")
+Extend your program with command names. Use the `cat-file` command name for `git-object` file printing.
 
-## Example
+Add the `list-branches` command. This new command should print out local branch names accessible in the `/refs/heads` directory of the specified `.git` location. The branch list should be sorted in alphabetical order. Branch names should be preceded with `*` followed by one space for the current branch and two spaces for other branches.
+
+## Examples
 The greater-than symbol followed by a space `>` represents the user input. Note that it's not part of the input.
+
+<b>Example 1</b>
 ```
 Enter .git directory location:
 > task/test/gitone
+Enter command:
+> list-branches
+  feature1
+  feature2
+* master
+```
+
+<b>Example 2</b>
+```
+Enter .git directory location:
+> task/test/gitone
+Enter command:
+> cat-file
 Enter git object hash:
-> 109e8050b41bd10b81be0a51a5e67327f5609551
-*TREE*
-100644 2b26c15c04375d90203783fb4c2a45ff04b571a6 main.kt
-100644 f674b5d3a4c6cef5815b4e72ef2ea1bbe46b786b readme.txt
-40000 74198c849dbbcd51d060c59253a4757eedb9bd12 some-folder
+> 490f96725348e92770d3c6bab9ec532564b7ebe0
+*BLOB*
+fun main() {
+    while(true) {
+        println("Hello Hyperskill student!")
+    }
+}
 ```
