@@ -18,8 +18,70 @@ fun main() {
         Command.CAT_FILE -> catFile(directoryLocation)
         Command.LIST_BRANCHES -> listBranches(directoryLocation)
         Command.LOG -> log(directoryLocation)
+        Command.COMMIT_TREE -> commitTree(directoryLocation)
+    }
+}
+
+private fun commitTree(directoryLocation: String) {
+    println("Enter commit-hash:")
+    val commitHash = readln()
+
+    printCommitTree(directoryLocation, commitHash)
+
+}
+
+private fun printCommitTree(directoryLocation: String, commitHash: String) {
+    val fileName = "$directoryLocation/objects/${commitHash.substring(0, 2)}/${commitHash.substring(2)}"
+
+    val (currentBytes, _) = getCurrentBytesObjectType(FileNameObjectType(fileName, ObjectType.BLOB))
+
+    val commitTreeHash = getCommitTreeHash(currentBytes) ?: ""
+
+    if (commitTreeHash.isBlank()) {
+        println(currentBytes.map { it.toChar() }.joinToString("").split("\u0000").first().split(" ").last())
+        return
     }
 
+    val treeFilename = "$directoryLocation/objects/${commitTreeHash.substring(0, 2)}/${commitTreeHash.substring(2)}"
+
+    val (currentBytesTree, _) = getCurrentBytesObjectType(FileNameObjectType(treeFilename, ObjectType.BLOB))
+
+    val blockList = mutableListOf<List<Int>>()
+    val hashList = mutableListOf<String>()
+    val currentBlock = mutableListOf<Int>()
+    var firstBlock = true
+
+    for (i in currentBytesTree.indices) {
+        val byte = currentBytesTree[i]
+        if (byte == 0) {
+            if (firstBlock) {
+                firstBlock = false
+                blockList.add(currentBlock.toMutableList())
+            } else {
+                blockList.add(currentBlock.subList(20, currentBlock.size).toMutableList())
+                hashList.add(currentBlock.subList(0, 20).joinToString("") { "%02x".format(it) })
+            }
+            currentBlock.clear()
+        } else {
+            currentBlock.add(byte)
+        }
+    }
+
+    hashList.add(currentBlock.subList(0, 20).joinToString("") { "%02x".format(it) })
+
+    for (i in hashList.indices) {
+        val fileName = "$directoryLocation/objects/${hashList[i].substring(0, 2)}/${hashList[i].substring(2)}"
+        val (_, type) = getCurrentBytesObjectType(FileNameObjectType(fileName, ObjectType.BLOB))
+        val objectName = blockList[i].map { it.toChar() }.joinToString("").split(" ").last()
+
+        if (type == ObjectType.TREE) {
+            print("$objectName/")
+            printCommitTree(directoryLocation, hashList[i])
+        } else {
+            println(objectName)
+        }
+
+    }
 }
 
 fun listBranches(directoryLocation: String) {
@@ -32,7 +94,6 @@ fun listBranches(directoryLocation: String) {
         println(it.fileName)
     }
 }
-
 
 private fun log(directoryLocation: String) {
     println("Enter branch name:")
@@ -56,10 +117,10 @@ private fun printLog(directoryLocation: String, gitHash: String) {
     if (parentHashList.size == 2) {
         val parentHash = parentHashList.last()
         println("Commit: $parentHash (merged)")
-        val fileName = "$directoryLocation/objects/${parentHash.substring(0, 2)}/${parentHash.substring(2)}"
-        val (currentBytes, _) = getCurrentBytesObjectType(FileNameObjectType(fileName, ObjectType.COMMIT))
-        println(getCommitterString(currentBytes))
-        println(getCommitMessageString(currentBytes))
+        val fileNameMerged = "$directoryLocation/objects/${parentHash.substring(0, 2)}/${parentHash.substring(2)}"
+        val (currentBytesMerged, _) = getCurrentBytesObjectType(FileNameObjectType(fileNameMerged, ObjectType.COMMIT))
+        println(getCommitterString(currentBytesMerged))
+        println(getCommitMessageString(currentBytesMerged))
         println()
     }
 
@@ -154,6 +215,7 @@ private fun printTree(currentBytes: List<Int>) {
 
 }
 
+
 private fun MutableList<Int>.flatToString() = this.joinToString("") { it.toChar().toString() }
 
 private fun printBlob(currentBytes: MutableList<Int>) {
@@ -171,11 +233,15 @@ private fun printCommit(currentBytes: MutableList<Int>) {
 }
 
 private fun printCommitTree(currentBytes: MutableList<Int>) {
+    val commitTreeHash = getCommitTreeHash(currentBytes)
+    if (!commitTreeHash.isNullOrBlank())
+        println("tree: $commitTreeHash")
+}
+
+private fun getCommitTreeHash(currentBytes: MutableList<Int>): String? {
     val regex = """tree [0-9a-z]+""".toRegex()
     val matchResult = regex.find(currentBytes.flatToString())
-    val tree = matchResult?.value?.replace("tree ", "")
-    if (!tree.isNullOrBlank())
-        println("tree: $tree")
+    return matchResult?.value?.replace("tree ", "")
 }
 
 private fun printParents(currentBytes: MutableList<Int>) {
@@ -204,7 +270,8 @@ private fun printAuthor(currentBytes: MutableList<Int>) {
 
     val regexTimeStamp = "${matchResultEmail?.value} \\d+ [+-]?\\d+".toRegex()
     val matchResultTimeStamp = matchResultEmail?.value?.let { regexTimeStamp.find(currentBytes.flatToString()) }
-    val timeStampString = matchResultTimeStamp?.value?.replace(regexEmail, "")?.trim() ?: throw RuntimeException("Invalid time format")
+    val timeStampString =
+        matchResultTimeStamp?.value?.replace(regexEmail, "")?.trim() ?: throw RuntimeException("Invalid time format")
     val timeStamp = timeStampString.parseTimeStamp()
 
 
@@ -227,7 +294,8 @@ private fun getCommitterString(currentBytes: MutableList<Int>): String {
 
     val regexTimeStamp = "${matchResultEmail?.value} \\d+ [+-]?\\d+".toRegex()
     val matchResultTimeStamp = matchResultEmail?.value?.let { regexTimeStamp.find(currentBytes.flatToString()) }
-    val timeStampString = matchResultTimeStamp?.value?.replace(regexEmail, "")?.trim() ?: throw RuntimeException("Invalid time format")
+    val timeStampString =
+        matchResultTimeStamp?.value?.replace(regexEmail, "")?.trim() ?: throw RuntimeException("Invalid time format")
     val timeStamp = timeStampString.parseTimeStamp()
 
     return "$committer $email commit timestamp: $timeStamp"
@@ -252,5 +320,6 @@ private fun getCommitMessageString(currentBytes: MutableList<Int>): String {
 
 private fun String.parseTimeStamp(): String {
     val (seconds, zone) = this.split(" ")
-    return Instant.ofEpochSecond(seconds.toLong()).atZone(ZoneOffset.of(zone)).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss xxx"))
+    return Instant.ofEpochSecond(seconds.toLong()).atZone(ZoneOffset.of(zone))
+        .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss xxx"))
 }

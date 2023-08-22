@@ -3,7 +3,8 @@ package gitinternals
 enum class Command(val string: String) {
     LIST_BRANCHES("list-branches"),
     CAT_FILE("cat-file"),
-    LOG("log")
+    LOG("log"),
+    COMMIT_TREE("commit-tree")
     ;
 
     companion object {
